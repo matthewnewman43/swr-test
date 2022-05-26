@@ -43,12 +43,32 @@ const useApiMutate = (path) => {
     }
 }
 
+const useCacheClear = (path) => {
+    const { cache } = useSWRConfig();
+
+    return () => {
+        const cacheKeys = cache.keys();
+
+        const keys = [];
+        for (const key of cacheKeys) {
+            if (!key.includes('$swr$') && new RegExp(path).test(key)) {
+                console.log('clearing key', key);
+
+                keys.push(key);
+            }
+        }
+
+        return keys.map(key => cache.delete(key));
+    }
+}
+
 export default function Home() {
   const router = useRouter();
   const {data} = useSwr(['/api/hello', {test: 'true'}], {test: 'true', fetcher: (path, options) => fetcher(path, options)});
   const { cache, mutate: globalMutate } = useSWRConfig();
 
   const customMutate = useApiMutate('/api/hello');
+  const cacheClear = useCacheClear('/api/hello');
 
   console.log({cache});
 
@@ -76,6 +96,10 @@ export default function Home() {
       <p style={{cursor: 'pointer'}} onClick={async () => {
           router.push('/newPage');
       }}>route without mutate</p>
+      <p style={{cursor: 'pointer'}} onClick={async () => {
+          cacheClear();
+          router.push('/newPage');
+      }}>route with clearing specific endpoint cache</p>
       <p style={{cursor: 'pointer'}} onClick={async () => {
           customMutate({num: 'optimistic data'});
           router.push('/newPage');
